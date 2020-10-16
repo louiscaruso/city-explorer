@@ -41,6 +41,18 @@ app.get('/restaurants', (request, response) => {
 
 });
 
+app.get('/weather', (request, response) => {
+  let data = require('./data/weather.json');
+  let weatherArray = [];
+  data.data.forEach(value => {
+      let weather = new Weather(value);
+      weatherArray.push(weather);
+  })
+  console.log(weatherArray);
+  response.send(weatherArray);
+
+});
+
 // Constructor to tailor our incoming raw data
 
 function Location(obj, query){

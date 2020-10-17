@@ -63,8 +63,8 @@ function Location(obj, query){
 }
 
 function Weather(obj){
-  this.time = obj
-  //use the console.log how ray did in the lecture, to find out where the data I need lives
+  this.time = obj.datetime;
+  this.forecast = obj.weather.description;
 }
 
 function Restaurant(obj) {

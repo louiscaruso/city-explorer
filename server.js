@@ -23,14 +23,14 @@ app.use(cors());
 
 // Routes
 //test route to ensure we are working
-app.get('/', (request, response) => {
-    response.send('Hello World');
-});
+// app.get('/', (request, response) => {
+//     response.send('Hello World');
+// });
 
 // refactor for api 
-app.get('/location', locationHandler);
-app.get('/weather', weatherHandler);
-app.get('/trails', trailHandler);
+app.get('./location', locationHandler);
+app.get('./weather', weatherHandler);
+app.get('./trails', trailHandler);
 
 
 // app.get('/restaurants', (request, response) => {

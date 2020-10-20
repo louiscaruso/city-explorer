@@ -28,9 +28,9 @@ app.use(cors());
 // });
 
 // refactor for api 
-app.get('./location', locationHandler);
-app.get('./weather', weatherHandler);
-app.get('./trails', trailHandler);
+app.get('/location', locationHandler);
+app.get('/weather', weatherHandler);
+app.get('/trails', trailHandler);
 
 
 // app.get('/restaurants', (request, response) => {

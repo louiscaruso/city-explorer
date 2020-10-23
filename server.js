@@ -5,6 +5,7 @@
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
+const pg = require('pg');//postgres
 const { response } = require('express');
 
 
@@ -20,14 +21,16 @@ app.use(cors());
 // Use CORS (cross origin resource sharing)
 app.use(cors());
 
+//creating postgres client
+const client = new pg.Client(process.env.DATABASE_URL);
 
-// Routes
+// Routes test
 //test route to ensure we are working
 // app.get('/', (request, response) => {
 //     response.send('Hello World');
 // });
 
-// refactor for api 
+// Route Handlers 
 app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
 app.get('/trails', trailHandler);
@@ -149,6 +152,15 @@ function Trails(obj, timeDate) {
 
 
 // Start our server!
-app.listen(PORT, () => {
-    console.log(`Server is now listening on port ${PORT}`);
-});
+
+
+client.connect()
+    .then(() => {
+        app.listen(PORT, () => {
+            console.log(`Server is now listening on port ${PORT}`);
+        }); 
+    })
+    .catch(err => {
+        console.log('error', err);
+    });
+    

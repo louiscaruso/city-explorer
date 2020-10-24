@@ -16,8 +16,7 @@ require('dotenv').config();
 // Setting up application
 const app = express();
 // Declare our port for our server to listen on
-const PORT = process.env.PORT || 3000;
-app.use(cors());
+const PORT = process.env.PORT || 4000;
 // Use CORS (cross origin resource sharing)
 app.use(cors());
 
@@ -34,7 +33,6 @@ const client = new pg.Client(process.env.DATABASE_URL);
 app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
 app.get('/trails', trailHandler);
-
 
 // app.get('/restaurants', (request, response) => {
 //     let data = require('./data/restaurants.json');
@@ -61,23 +59,54 @@ app.get('/trails', trailHandler);
 // });
 
 //Route Handlers
+
+
 function locationHandler(request, response) {
     let city = request.query.city;
     let key = process.env.LOCATIONIQ_API_KEY;
 
-    const URL = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
+    const SQL = 'SELECT * FROM citylocations WHERE search_query=$1';
+    const safeValue = [city];
+    client.query(SQL, safeValue)
+        .then(results => {
+            if (results.rows.length > 0) {
+                console.log('DATABASE WAS USED');
+                response.status(200).json(results.rows[0]);
+            } else {
+                const URL = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
 
-    superagent.get(URL)
-        .then(data => {
-            let location = new Location(city, data.body[0]);
-            response.status(200).json(location);
+                superagent.get(URL)
+                    .then(data => {
+                        let location = new Location(city, data.body[0]);
+                        let cityQuery = location.search_query;
+                        let lat = location.latitude;
+                        let lon = location.longitude;
+                        const SQL = `INSERT INTO cityLocations (search_query, latitude, longitude) VALUES ($1, $2, $3) RETURNING *`;
+                        const safeValue = [cityQuery, lat, lon];
+                        client.query(SQL, safeValue)
+                            .then(results => {
+                                console.log('new additon to the database ', results.rows)
+                            })
+                            .catch(error => {
+                                console.log('Error', error);
+                                res.status(500).send('Something went wrong.');
+                            });
+
+                        response.status(200).json(location);
+                    })
+                    .catch((error) => {
+                        console.log('error1', error);
+                        response.status(500).send('Your API call is not working?');
+                    })
+            }
         })
         .catch((error) => {
-            console.log('error', error);
-            response.status(500).send('Your API call is not working?');
-        })
-
+            response.status(500).send('error');
+        });
 }
+
+
+
 
 
 function weatherHandler(request, response) {
@@ -158,9 +187,8 @@ client.connect()
     .then(() => {
         app.listen(PORT, () => {
             console.log(`Server is now listening on port ${PORT}`);
-        }); 
+        });
     })
     .catch(err => {
         console.log('error', err);
     });
-    

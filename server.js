@@ -81,8 +81,8 @@ function locationHandler(request, response) {
                         let cityQuery = location.search_query;
                         let lat = location.latitude;
                         let lon = location.longitude;
-                        const SQL = `INSERT INTO cityLocations (search_query, latitude, longitude) VALUES ($1, $2, $3) RETURNING *`;
-                        const safeValue = [cityQuery, lat, lon];
+                        const SQL = `INSERT INTO cityLocations (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3) RETURNING *`;
+                        const safeValue = [cityQuery, cityQuery, lat, lon];
                         client.query(SQL, safeValue)
                             .then(results => {
                                 console.log('new additon to the database ', results.rows)

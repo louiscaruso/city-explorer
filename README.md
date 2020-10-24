@@ -8,3 +8,4 @@
 
 ## Links
 - [Trello](https://trello.com/b/97QcEMjo/city-explorer)
+- Worked with Anthony Beaver  

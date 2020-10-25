@@ -33,33 +33,11 @@ const client = new pg.Client(process.env.DATABASE_URL);
 app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
 app.get('/trails', trailHandler);
+app.get('/movies', movieHandler);
+app.get('/yelp', restaurantHandler);
 
-// app.get('/restaurants', (request, response) => {
-//     let data = require('./data/restaurants.json');
-//     let restaurantArray = [];
-//     data.nearby_restaurants.forEach(value => {
-//         let restaurant = new Restaurant(value);
-//         restaurantArray.push(restaurant);
-//     })
-//     console.log(restaurantArray);
-//     response.send(restaurantArray);
-
-// });
-
-// app.get('/weather', (request, response) => {
-//   let data = require('./data/weather.json');
-//   let weatherArray = [];
-//   data.data.forEach(value => {
-//       let weather = new Weather(value);
-//       weatherArray.push(weather);
-//   })
-//   console.log(weatherArray);
-//   response.send(weatherArray);
-
-// });
 
 //Route Handlers
-
 
 function locationHandler(request, response) {
     let city = request.query.city;
@@ -70,7 +48,7 @@ function locationHandler(request, response) {
     client.query(SQL, safeValue)
         .then(results => {
             if (results.rows.length > 0) {
-                console.log('DATABASE WAS USED');
+                // console.log('DATABASE WAS USED');
                 response.status(200).json(results.rows[0]);
             } else {
                 const URL = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
@@ -85,17 +63,17 @@ function locationHandler(request, response) {
                         const safeValue = [cityQuery, cityQuery, lat, lon];
                         client.query(SQL, safeValue)
                             .then(results => {
-                                console.log('new additon to the database ', results.rows)
+                                // console.log('new additon to the database ', results.rows)
                             })
                             .catch(error => {
-                                console.log('Error', error);
-                                res.status(500).send('Something went wrong.');
+                                // console.log('Error', error);
+                                response.status(500).send('Something went wrong.');
                             });
 
                         response.status(200).json(location);
                     })
                     .catch((error) => {
-                        console.log('error1', error);
+                        // console.log('error1', error);
                         response.status(500).send('Your API call is not working?');
                     })
             }
@@ -107,7 +85,61 @@ function locationHandler(request, response) {
 
 
 
+function movieHandler(request, response) {
+    let city = request.query.search_query;
+    let key = process.env.MOVIE_API_KEY;
+    const URL = `https://api.themoviedb.org/3/search/movie?api_key=${key}&language=en-US&query=${city}&page=1&include_adult=false`;
 
+
+    superagent.get(URL)
+        .then(data => {
+            // console.log(data.body.results[0])
+            let eachMovie = data.body.results.map(movies => {
+                let imgToUse = '';
+                if (movies.poster_path === null && movies.backdrop_path === null) {
+                    imgToUse = 'No Picture';
+                }
+                else if (movies.poster_path) {
+                    imgToUse = `https://image.tmdb.org/t/p/w500${movies.poster_path}`;
+                }
+                else if (movies.backdrop_path) {
+                    imgToUse = `https://image.tmdb.org/t/p/w500${movies.backdrop_path}`;
+                }
+                return new Movies(movies, imgToUse);
+            });
+            eachMovie = eachMovie.slice(0, 20);
+            response.status(200).json(eachMovie);
+        })
+        .catch((error) => {
+            console.log('error', error);
+            response.status(500).send('Your Movie API call is not working?');
+        });
+
+}
+
+function restaurantHandler(request, response) {
+    let city = request.query.search_query;
+    let key = process.env.YELP_API_KEY
+    const numPerPage = 5;
+    const page = request.query.page || 1;
+    const start = ((page - 1) * numPerPage);
+
+    const API = `https://api.yelp.com/v3/businesses/search?location=${city}&term=restaurants&limit=5&offset=${start}`;
+
+    superagent.get(API)
+        .set('Authorization', `Bearer ${key}`)
+        .then(data => {
+            console.log(data.body.businesses[0]);
+            let eachRestaurant = data.body.businesses.map(restaurant => {
+                return new Restaurant(restaurant);
+            });
+            response.status(200).json(eachRestaurant);
+        })
+        .catch((error) => {
+            console.log('error', error);
+            response.status(500).send('Your Yelp API call is not working?');
+        });
+}
 
 function weatherHandler(request, response) {
     let city = request.query.search_query;
@@ -125,7 +157,7 @@ function weatherHandler(request, response) {
             response.send(weatherArray)
         })
         .catch((error) => {
-            console.log('error', error);
+            // console.log('error', error);
             response.status(500).send('Your API call is not working?');
         })
 }
@@ -136,7 +168,7 @@ function trailHandler(request, response) {
     let key = process.env.TRAILS_API_KEY;
 
     const URL = `https://www.hikingproject.com/data/get-trails?lat=${lat}&lon=${lon}&key=${key}&days=10`;
-    console.log(URL);
+    // console.log(URL);
     superagent.get(URL)
         .then(data => {
             let eachTrail = data.body.trails.map(trail => {
@@ -147,7 +179,7 @@ function trailHandler(request, response) {
             response.send(eachTrail);
         })
         .catch((error) => {
-            console.log('error', error);
+            // console.log('error', error);
             response.status(500).send('Your API call is not working? Trails');
         })
 }
@@ -158,6 +190,14 @@ function Location(query, obj) {
     this.longitude = obj.lon;
     this.search_query = query;
     this.formatted_query = obj.display_name;
+}
+
+function Restaurant(obj) {
+    this.name = obj.name;
+    this.image_url = obj.image_url;
+    this.price = obj.price;
+    this.rating = obj.rating;
+    this.url = obj.url;
 }
 
 function Weather(string, obj) {
@@ -179,6 +219,20 @@ function Trails(obj, timeDate) {
 
 }
 
+function Movies(obj, img) {
+    this.title = obj.title;
+    this.overview = obj.overview;
+    this.average_votes = obj.vote_average;
+    this.total_votes = obj.vote_count;
+    this.popularity = obj.popularity;
+    this.released_on = obj.release_date;
+    this.image_url = img;
+}
+
+// function Restaurant(entry){
+//     this
+
+// }
 
 // Start our server!
 
